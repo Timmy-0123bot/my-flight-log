@@ -1,9 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
+import { MeshPhongMaterial } from 'three'
+import { feature } from 'topojson-client'
+import type { Topology } from 'topojson-specification'
+import type { FeatureCollection } from 'geojson'
+import countries50m from 'world-atlas/countries-50m.json'
 import { findAirport } from '../airports'
 import type { Airport, Flight } from '../types'
 
 type Arc = { startLat: number; startLng: number; endLat: number; endLng: number }
+
+// Natural Earth 1:50m の国境データ（日本の島々の形も判別できる精度）
+const topology = countries50m as unknown as Topology
+const countries = (feature(topology, topology.objects.countries) as FeatureCollection).features
+
+// 海の色。陸地はポリゴンで上から描く
+const oceanMaterial = new MeshPhongMaterial({ color: '#0b1a2e', shininess: 8 })
 
 type Props = {
   flights: Flight[]
@@ -51,10 +63,16 @@ export function GlobeView({ flights }: Props) {
         ref={globeRef}
         width={size.width}
         height={size.height}
-        globeImageUrl="/earth-dark.jpg"
+        globeMaterial={oceanMaterial}
         backgroundImageUrl="/night-sky.png"
         atmosphereColor="#6b8cff"
         atmosphereAltitude={0.18}
+        polygonsData={countries}
+        polygonCapColor={() => '#34425a'}
+        polygonSideColor={() => 'rgba(0,0,0,0)'}
+        polygonStrokeColor={() => '#7a8aa6'}
+        polygonAltitude={0.004}
+        polygonsTransitionDuration={0}
         arcsData={arcs}
         arcColor={() => 'rgba(255,255,255,0.9)'}
         arcStroke={0.5}
@@ -63,7 +81,7 @@ export function GlobeView({ flights }: Props) {
         pointLat="lat"
         pointLng="lng"
         pointColor={() => '#ffffff'}
-        pointAltitude={0.005}
+        pointAltitude={0.008}
         pointRadius={0.25}
         labelsData={airports}
         labelLat="lat"
@@ -72,7 +90,7 @@ export function GlobeView({ flights }: Props) {
         labelSize={0.9}
         labelDotRadius={0}
         labelColor={() => 'rgba(255,255,255,0.85)'}
-        labelAltitude={0.01}
+        labelAltitude={0.012}
       />
     </div>
   )
