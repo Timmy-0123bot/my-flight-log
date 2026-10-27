@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { findAirport } from '../airports'
 import type { Airport, Flight } from '../types'
 import { AirportInput } from './AirportInput'
+import { DateInput } from './DateInput'
 
 type Props = {
   // 指定すると編集モード（その内容を初期値にし、保存時は同じIDで返す）
@@ -46,11 +47,8 @@ export function FlightForm({ initial, onSubmit, onClose }: Props) {
         <AirportInput label="出発" value={from} onChange={setFrom} />
         <AirportInput label="到着" value={to} onChange={setTo} />
       </div>
+      <DateInput value={date} onChange={setDate} />
       <div className="row">
-        <label className="field">
-          <span className="field-label">日付（任意）</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
         <label className="field">
           <span className="field-label">便名</span>
           <input
@@ -59,11 +57,11 @@ export function FlightForm({ initial, onSubmit, onClose }: Props) {
             onChange={(e) => setFlightNumber(e.target.value)}
           />
         </label>
+        <label className="field">
+          <span className="field-label">航空会社</span>
+          <input value={airline} placeholder="ANA" onChange={(e) => setAirline(e.target.value)} />
+        </label>
       </div>
-      <label className="field">
-        <span className="field-label">航空会社</span>
-        <input value={airline} placeholder="ANA" onChange={(e) => setAirline(e.target.value)} />
-      </label>
       <div className="form-actions">
         <button type="button" className="secondary" onClick={onClose}>
           {isEdit ? 'キャンセル' : '閉じる'}

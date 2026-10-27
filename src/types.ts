@@ -11,7 +11,8 @@ export type Flight = {
   id: string
   from: string // IATAコード
   to: string // IATAコード
-  date?: string // YYYY-MM-DD（任意）
+  // 任意。年だけ・年月だけも可（YYYY / YYYY-MM / YYYY-MM-DD）。文字列のまま並べ替えられる
+  date?: string
   flightNumber?: string
   airline?: string
 }

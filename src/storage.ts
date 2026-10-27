@@ -46,6 +46,8 @@ export function exportFlights(flights: Flight[]): void {
 }
 
 const IATA = /^[A-Z]{3}$/
+// YYYY / YYYY-MM / YYYY-MM-DD
+const DATE = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
@@ -69,11 +71,15 @@ export function parseBackup(text: string): Flight[] {
     if (!IATA.test(from) || !IATA.test(to)) {
       throw new Error(`${i + 1} 件目の空港コードが正しくありません`)
     }
+    const date = optionalString(f.date)
+    if (date && !DATE.test(date)) {
+      throw new Error(`${i + 1} 件目の日付が正しくありません（${date}）`)
+    }
     return {
       id: optionalString(f.id) ?? crypto.randomUUID(),
       from,
       to,
-      date: optionalString(f.date),
+      date,
       flightNumber: optionalString(f.flightNumber),
       airline: optionalString(f.airline),
     }
