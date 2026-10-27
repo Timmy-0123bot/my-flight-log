@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { MeshPhongMaterial } from 'three'
 import { feature } from 'topojson-client'
@@ -16,6 +16,22 @@ const countries = (feature(topology, topology.objects.countries) as FeatureColle
 
 // 海の色。陸地はポリゴンで上から描く
 const oceanMaterial = new MeshPhongMaterial({ color: '#0b1a2e', shininess: 8 })
+
+type AirportLabel = Airport & { count: number; el: HTMLElement }
+
+// ラベル（3レターコード）1つぶんの画面上の大きさ（px）。重なり判定に使う
+const LABEL_WIDTH = 30
+const LABEL_HEIGHT = 16
+
+// 画面上で常に同じ大きさになるHTMLラベル。外側の要素が空港の位置に置かれ、文字は点の右上に出す
+function createLabelElement(text: string): HTMLElement {
+  const el = document.createElement('div')
+  el.className = 'airport-label'
+  const span = document.createElement('span')
+  span.textContent = text
+  el.appendChild(span)
+  return el
+}
 
 type Props = {
   flights: Flight[]
@@ -38,14 +54,15 @@ export function GlobeView({ flights }: Props) {
     return () => observer.disconnect()
   }, [])
 
-  // 初期視点は東京付近
-  useEffect(() => {
-    globeRef.current?.pointOfView({ lat: 30, lng: 140, altitude: 2.2 }, 0)
-  }, [])
 
   const { arcs, airports } = useMemo(() => {
     const arcs: Arc[] = []
-    const used = new Map<string, Airport>()
+    const used = new Map<string, AirportLabel>()
+    const add = (a: Airport) => {
+      const entry = used.get(a.iata)
+      if (entry) entry.count++
+      else used.set(a.iata, { ...a, count: 1, el: createLabelElement(a.iata) })
+    }
     for (const f of flights) {
       const from = findAirport(f.from)
       const to = findAirport(f.to)
@@ -57,47 +74,83 @@ export function GlobeView({ flights }: Props) {
         endLng: to.lng,
         color: isDomestic(from, to) ? ROUTE_COLORS.domestic : ROUTE_COLORS.international,
       })
-      used.set(from.iata, from)
-      used.set(to.iata, to)
+      add(from)
+      add(to)
     }
-    return { arcs, airports: [...used.values()] }
+    // 利用回数の多い空港ほどラベルを優先して表示する
+    const airports = [...used.values()].sort((a, b) => b.count - a.count)
+    return { arcs, airports }
   }, [flights])
+
+  // 画面上で重なるラベルと、地球の裏側にあるラベルを隠す
+  const declutter = useCallback(() => {
+    const globe = globeRef.current
+    if (!globe) return
+    const cam = globe.camera().position
+    const placed: { x: number; y: number }[] = []
+    for (const a of airports) {
+      const p = globe.getCoords(a.lat, a.lng, 0)
+      // カメラから見て地球の手前側にあるか
+      const facing = p.x * cam.x + p.y * cam.y + p.z * cam.z > 100 * 100
+      const { x, y } = globe.getScreenCoords(a.lat, a.lng, 0)
+      const overlaps = placed.some(
+        (q) => Math.abs(q.y - y) < LABEL_HEIGHT && Math.abs(q.x - x) < LABEL_WIDTH,
+      )
+      const visible = facing && !overlaps
+      a.el.classList.toggle('hidden', !visible)
+      if (visible) placed.push({ x, y })
+    }
+  }, [airports])
+
+  // データや画面サイズが変わったら、描画が終わった次のフレームで整理する
+  useEffect(() => {
+    const id = requestAnimationFrame(declutter)
+    return () => cancelAnimationFrame(id)
+  }, [declutter, size])
 
   return (
     <div ref={containerRef} className="globe-area">
-      <Globe
-        ref={globeRef}
-        width={size.width}
-        height={size.height}
-        globeMaterial={oceanMaterial}
-        backgroundImageUrl="/night-sky.png"
-        atmosphereColor="#6b8cff"
-        atmosphereAltitude={0.18}
-        polygonsData={countries}
-        polygonCapColor={() => '#34425a'}
-        polygonSideColor={() => 'rgba(0,0,0,0)'}
-        polygonStrokeColor={() => '#7a8aa6'}
-        polygonAltitude={0.004}
-        polygonsTransitionDuration={0}
-        arcsData={arcs}
-        arcColor="color"
-        arcStroke={0.5}
-        arcAltitudeAutoScale={0.4}
-        pointsData={airports}
-        pointLat="lat"
-        pointLng="lng"
-        pointColor={() => '#ffffff'}
-        pointAltitude={0.008}
-        pointRadius={0.25}
-        labelsData={airports}
-        labelLat="lat"
-        labelLng="lng"
-        labelText="iata"
-        labelSize={0.9}
-        labelDotRadius={0}
-        labelColor={() => 'rgba(255,255,255,0.85)'}
-        labelAltitude={0.012}
-      />
+      {/* 大きさ0で初期化するとカメラの縦横比が NaN になるため、表示領域が決まってから描画する */}
+      {size.width > 0 && size.height > 0 && (
+        <Globe
+          ref={globeRef}
+          width={size.width}
+          height={size.height}
+          globeMaterial={oceanMaterial}
+          backgroundImageUrl="/night-sky.png"
+          atmosphereColor="#6b8cff"
+          atmosphereAltitude={0.18}
+          polygonsData={countries}
+          polygonCapColor={() => '#34425a'}
+          polygonSideColor={() => 'rgba(0,0,0,0)'}
+          polygonStrokeColor={() => '#7a8aa6'}
+          polygonAltitude={0.004}
+          polygonsTransitionDuration={0}
+          arcsData={arcs}
+          arcColor="color"
+          arcStroke={0.5}
+          arcAltitudeAutoScale={0.4}
+          pointsData={airports}
+          pointLat="lat"
+          pointLng="lng"
+          pointColor={() => '#ffffff'}
+          pointAltitude={0.008}
+          pointRadius={0.25}
+          htmlElementsData={airports}
+          htmlLat="lat"
+          htmlLng="lng"
+          htmlAltitude={0.012}
+          htmlElement="el"
+          htmlTransitionDuration={0}
+          onZoom={declutter}
+          onGlobeReady={() => {
+            // 初期視点は東京付近
+            globeRef.current?.pointOfView({ lat: 30, lng: 140, altitude: 2.2 }, 0)
+            // カメラ位置が反映される次のフレームで整理する
+            requestAnimationFrame(declutter)
+          }}
+        />
+      )}
     </div>
   )
 }
