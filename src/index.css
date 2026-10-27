@@ -23,12 +23,23 @@ body {
   background: var(--bg);
 }
 
+/* 地球儀の表示領域。パネルを開いている間はパネルの左側だけを使う */
+.globe-area {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.panel-open .globe-area {
+  right: 352px;
+}
+
 .panel {
   position: fixed;
   top: 16px;
   right: 16px;
   bottom: 16px;
-  width: 360px;
+  width: 320px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -38,6 +49,44 @@ body {
   border-radius: 14px;
   backdrop-filter: blur(10px);
   overflow-y: auto;
+}
+
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.icon-button:hover {
+  color: var(--text);
+}
+
+.panel-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  padding: 8px 14px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+}
+
+.panel-toggle:hover {
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .panel h1 {
@@ -166,6 +215,20 @@ button.primary {
   font-weight: 600;
 }
 
+button.secondary {
+  padding: 10px;
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+}
+
 button.primary:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -227,13 +290,18 @@ button.link.danger:hover {
   align-self: center;
 }
 
-/* スマホ：パネルを画面下部に */
+/* スマホ：パネルを画面下部に置き、地球儀はその上の領域に収める */
 @media (max-width: 640px) {
   .panel {
     top: auto;
     left: 16px;
     right: 16px;
     width: auto;
-    max-height: 55vh;
+    height: 42vh;
+  }
+
+  .panel-open .globe-area {
+    right: 0;
+    bottom: calc(42vh + 16px);
   }
 }

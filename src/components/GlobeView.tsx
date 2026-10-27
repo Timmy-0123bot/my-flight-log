@@ -11,12 +11,19 @@ type Props = {
 
 export function GlobeView({ flights }: Props) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined)
-  const [size, setSize] = useState({ width: window.innerWidth, height: window.innerHeight })
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ width: 0, height: 0 })
 
+  // 表示領域はCSSで決め、その大きさに地球儀を合わせる
   useEffect(() => {
-    const onResize = () => setSize({ width: window.innerWidth, height: window.innerHeight })
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    const el = containerRef.current
+    if (!el) return
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      setSize({ width, height })
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [])
 
   // 初期視点は東京付近
@@ -39,32 +46,34 @@ export function GlobeView({ flights }: Props) {
   }, [flights])
 
   return (
-    <Globe
-      ref={globeRef}
-      width={size.width}
-      height={size.height}
-      globeImageUrl="/earth-dark.jpg"
-      backgroundImageUrl="/night-sky.png"
-      atmosphereColor="#6b8cff"
-      atmosphereAltitude={0.18}
-      arcsData={arcs}
-      arcColor={() => 'rgba(255,255,255,0.9)'}
-      arcStroke={0.5}
-      arcAltitudeAutoScale={0.4}
-      pointsData={airports}
-      pointLat="lat"
-      pointLng="lng"
-      pointColor={() => '#ffffff'}
-      pointAltitude={0.005}
-      pointRadius={0.25}
-      labelsData={airports}
-      labelLat="lat"
-      labelLng="lng"
-      labelText="iata"
-      labelSize={0.9}
-      labelDotRadius={0}
-      labelColor={() => 'rgba(255,255,255,0.85)'}
-      labelAltitude={0.01}
-    />
+    <div ref={containerRef} className="globe-area">
+      <Globe
+        ref={globeRef}
+        width={size.width}
+        height={size.height}
+        globeImageUrl="/earth-dark.jpg"
+        backgroundImageUrl="/night-sky.png"
+        atmosphereColor="#6b8cff"
+        atmosphereAltitude={0.18}
+        arcsData={arcs}
+        arcColor={() => 'rgba(255,255,255,0.9)'}
+        arcStroke={0.5}
+        arcAltitudeAutoScale={0.4}
+        pointsData={airports}
+        pointLat="lat"
+        pointLng="lng"
+        pointColor={() => '#ffffff'}
+        pointAltitude={0.005}
+        pointRadius={0.25}
+        labelsData={airports}
+        labelLat="lat"
+        labelLng="lng"
+        labelText="iata"
+        labelSize={0.9}
+        labelDotRadius={0}
+        labelColor={() => 'rgba(255,255,255,0.85)'}
+        labelAltitude={0.01}
+      />
+    </div>
   )
 }

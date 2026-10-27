@@ -4,9 +4,10 @@ import { AirportInput } from './AirportInput'
 
 type Props = {
   onAdd: (flight: Flight) => void
+  onClose: () => void
 }
 
-export function FlightForm({ onAdd }: Props) {
+export function FlightForm({ onAdd, onClose }: Props) {
   const [from, setFrom] = useState<Airport | null>(null)
   const [to, setTo] = useState<Airport | null>(null)
   const [date, setDate] = useState('')
@@ -56,9 +57,14 @@ export function FlightForm({ onAdd }: Props) {
         <span className="field-label">航空会社</span>
         <input value={airline} placeholder="ANA" onChange={(e) => setAirline(e.target.value)} />
       </label>
-      <button type="submit" className="primary" disabled={!canSubmit}>
-        フライトを追加
-      </button>
+      <div className="form-actions">
+        <button type="button" className="secondary" onClick={onClose}>
+          閉じる
+        </button>
+        <button type="submit" className="primary" disabled={!canSubmit}>
+          追加
+        </button>
+      </div>
     </form>
   )
 }
