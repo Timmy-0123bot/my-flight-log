@@ -22,4 +22,10 @@
 
 ## 開発メモ
 
-- 技術スタック・ビルド方法・ディレクトリ構成は、決まり次第このファイルに追記する。
+- 技術スタック: React + TypeScript + Vite、地球儀は react-globe.gl（three.js）
+- データ保存: ブラウザの localStorage（`src/storage.ts`）
+- 空港データ: OurAirports の公開データから `npm run build:airports` で `src/data/airports.json` を生成（IATAコード付きの定期便空港のみ）
+- コマンド: `npm run dev`（開発サーバー）、`npm run build`（型チェック＋ビルド）
+- デザイン: 暗い色ベースの球状地図、路線は白い線
+- 空港検索は3レターコードまたは英語（都市名・空港名）
+- フライトの必須項目は出発・到着空港のみ。日付・便名・航空会社は任意

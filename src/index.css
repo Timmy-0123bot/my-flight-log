@@ -1,0 +1,239 @@
+:root {
+  --bg: #05070d;
+  --panel: rgba(14, 18, 28, 0.86);
+  --border: rgba(255, 255, 255, 0.12);
+  --text: #e6e8ee;
+  --muted: #8a90a0;
+  --accent: #ffffff;
+  --danger: #ff7b7b;
+
+  font: 14px/1.5 system-ui, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.panel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+  overflow-y: auto;
+}
+
+.panel h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+
+.stats {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.flight-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+input {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+
+input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.combo {
+  position: relative;
+}
+
+.combo-list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 280px;
+  max-width: calc(100vw - 64px);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #151a26;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.combo-list li {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.combo-list li.active,
+.combo-list li:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.combo-list small {
+  grid-column: 2;
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.airport-selected {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.airport-selected span {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button.primary {
+  padding: 10px;
+  color: #0a0d14;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+button.primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+button.link {
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: none;
+  font-size: 12px;
+}
+
+button.link:hover {
+  color: var(--text);
+}
+
+button.link.danger:hover {
+  color: var(--danger);
+}
+
+.empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.flight-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.flight-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.flight-list .route {
+  font-size: 16px;
+}
+
+.flight-list .arrow {
+  margin: 0 6px;
+  color: var(--muted);
+}
+
+.flight-list .meta {
+  grid-column: 1;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.flight-list button {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+}
+
+/* スマホ：パネルを画面下部に */
+@media (max-width: 640px) {
+  .panel {
+    top: auto;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-height: 55vh;
+  }
+}
