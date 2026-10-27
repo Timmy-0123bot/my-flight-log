@@ -30,6 +30,19 @@ export function searchAirports(query: string, limit = 8): Airport[] {
   return scored.slice(0, limit).map((s) => s.airport)
 }
 
+// 出発・到着が同じ国なら国内線
+export function isDomestic(a: Airport, b: Airport): boolean {
+  return a.country === b.country
+}
+
+export const ROUTE_COLORS = {
+  domestic: '#ffc35c',
+  international: '#ffffff',
+} as const
+
+// 地球の赤道周長（km）
+export const EARTH_CIRCUMFERENCE_KM = 40075
+
 // 大圏距離（km）
 export function distanceKm(a: Airport, b: Airport): number {
   const rad = Math.PI / 180

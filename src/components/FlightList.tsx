@@ -1,4 +1,4 @@
-import { distanceKm, findAirport } from '../airports'
+import { distanceKm, findAirport, isDomestic, ROUTE_COLORS } from '../airports'
 import type { Flight } from '../types'
 
 type Props = {
@@ -20,9 +20,15 @@ export function FlightList({ flights, onDelete }: Props) {
         const from = findAirport(f.from)
         const to = findAirport(f.to)
         const km = from && to ? Math.round(distanceKm(from, to)) : null
+        const domestic = from && to ? isDomestic(from, to) : false
         return (
           <li key={f.id}>
             <div className="route">
+              <i
+                className="route-dot"
+                title={domestic ? '国内線' : '国際線'}
+                style={{ background: domestic ? ROUTE_COLORS.domestic : ROUTE_COLORS.international }}
+              />
               <strong>{f.from}</strong>
               <span className="arrow">→</span>
               <strong>{f.to}</strong>

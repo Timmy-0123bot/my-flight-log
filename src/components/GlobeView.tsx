@@ -5,10 +5,10 @@ import { feature } from 'topojson-client'
 import type { Topology } from 'topojson-specification'
 import type { FeatureCollection } from 'geojson'
 import countries50m from 'world-atlas/countries-50m.json'
-import { findAirport } from '../airports'
+import { findAirport, isDomestic, ROUTE_COLORS } from '../airports'
 import type { Airport, Flight } from '../types'
 
-type Arc = { startLat: number; startLng: number; endLat: number; endLng: number }
+type Arc = { startLat: number; startLng: number; endLat: number; endLng: number; color: string }
 
 // Natural Earth 1:50m の国境データ（日本の島々の形も判別できる精度）
 const topology = countries50m as unknown as Topology
@@ -50,7 +50,13 @@ export function GlobeView({ flights }: Props) {
       const from = findAirport(f.from)
       const to = findAirport(f.to)
       if (!from || !to) continue
-      arcs.push({ startLat: from.lat, startLng: from.lng, endLat: to.lat, endLng: to.lng })
+      arcs.push({
+        startLat: from.lat,
+        startLng: from.lng,
+        endLat: to.lat,
+        endLng: to.lng,
+        color: isDomestic(from, to) ? ROUTE_COLORS.domestic : ROUTE_COLORS.international,
+      })
       used.set(from.iata, from)
       used.set(to.iata, to)
     }
@@ -74,7 +80,7 @@ export function GlobeView({ flights }: Props) {
         polygonAltitude={0.004}
         polygonsTransitionDuration={0}
         arcsData={arcs}
-        arcColor={() => 'rgba(255,255,255,0.9)'}
+        arcColor="color"
         arcStroke={0.5}
         arcAltitudeAutoScale={0.4}
         pointsData={airports}
