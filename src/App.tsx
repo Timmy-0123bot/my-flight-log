@@ -27,6 +27,7 @@ export default function App() {
   const [formOpen, setFormOpen] = useState(false)
   const [routeFilter, setRouteFilter] = useState<RouteFilter>('all')
   const [selectedAirport, setSelectedAirport] = useState<string | null>(null)
+  const [focusedFlightId, setFocusedFlightId] = useState<string | null>(null)
 
   useEffect(() => saveFlights(flights), [flights])
 
@@ -69,10 +70,13 @@ export default function App() {
       <GlobeView
         flights={visibleFlights}
         selectedAirport={selectedAirport}
+        focusedFlightId={focusedFlightId}
         // 選択中の空港をもう一度押したら解除する
-        onSelectAirport={(iata) =>
-          setSelectedAirport((prev) => (iata && iata !== prev ? iata : null))
-        }
+        onSelectAirport={(iata) => setSelectedAirport((prev) => (iata !== prev ? iata : null))}
+        onBackgroundClick={() => {
+          setSelectedAirport(null)
+          setFocusedFlightId(null)
+        }}
       />
 
       {panelOpen ? (
@@ -131,7 +135,7 @@ export default function App() {
 
           {formOpen ? (
             <FlightForm
-              onAdd={(f) => setFlights((prev) => [...prev, f])}
+              onSubmit={(f) => setFlights((prev) => [...prev, f])}
               onClose={() => setFormOpen(false)}
             />
           ) : (
@@ -143,6 +147,12 @@ export default function App() {
           <FlightList
             flights={visibleFlights}
             emptyMessage={isFiltered ? '該当するフライトがありません' : 'まだフライトがありません'}
+            focusedId={focusedFlightId}
+            // 強調中のフライトをもう一度押したら解除する
+            onFocus={(id) => setFocusedFlightId((prev) => (id !== prev ? id : null))}
+            onUpdate={(updated) =>
+              setFlights((prev) => prev.map((f) => (f.id === updated.id ? updated : f)))
+            }
             onDelete={(id) => setFlights((prev) => prev.filter((f) => f.id !== id))}
           />
 
@@ -150,6 +160,7 @@ export default function App() {
             flights={flights}
             onImport={(imported) => {
               setFlights(imported)
+              setFocusedFlightId(null)
               setSelectedAirport(null)
             }}
           />

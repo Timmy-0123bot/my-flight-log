@@ -43,6 +43,19 @@ export const ROUTE_COLORS = {
 // 地球の赤道周長（km）
 export const EARTH_CIRCUMFERENCE_KM = 40075
 
+// 2空港を結ぶ大圏航路の中間地点
+export function midpoint(a: Airport, b: Airport): { lat: number; lng: number } {
+  const rad = Math.PI / 180
+  const lat1 = a.lat * rad
+  const lat2 = b.lat * rad
+  const dLng = (b.lng - a.lng) * rad
+  const bx = Math.cos(lat2) * Math.cos(dLng)
+  const by = Math.cos(lat2) * Math.sin(dLng)
+  const lat = Math.atan2(Math.sin(lat1) + Math.sin(lat2), Math.hypot(Math.cos(lat1) + bx, by))
+  const lng = a.lng * rad + Math.atan2(by, Math.cos(lat1) + bx)
+  return { lat: lat / rad, lng: ((lng / rad + 540) % 360) - 180 }
+}
+
 // 大圏距離（km）
 export function distanceKm(a: Airport, b: Airport): number {
   const rad = Math.PI / 180

@@ -1,9 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
-import { findAirport, isDomestic, ROUTE_COLORS } from '../airports'
+import { distanceKm, findAirport, isDomestic, midpoint, ROUTE_COLORS } from '../airports'
 import type { Airport, Flight } from '../types'
 
-type Arc = { startLat: number; startLng: number; endLat: number; endLng: number; color: string }
+type Arc = {
+  startLat: number
+  startLng: number
+  endLat: number
+  endLng: number
+  color: string
+  stroke: number
+}
+
+// 強調表示中は、それ以外の路線をこの不透明度で薄く描く
+const DIMMED_ALPHA = 0.2
+
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16)
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+}
 
 // 地図画像・背景画像は scripts/build-textures.mjs で事前に生成したもの
 const GLOBE_IMAGE = `${import.meta.env.BASE_URL}land.webp`
@@ -31,13 +46,38 @@ function createLabelElement(text: string, selected: boolean, onClick: () => void
 type Props = {
   flights: Flight[]
   selectedAirport: string | null
-  onSelectAirport: (iata: string | null) => void
+  // 一覧で選ばれ、地図上で強調表示するフライト
+  focusedFlightId: string | null
+  onSelectAirport: (iata: string) => void
+  onBackgroundClick: () => void
 }
 
-export function GlobeView({ flights, selectedAirport, onSelectAirport }: Props) {
+export function GlobeView({
+  flights,
+  selectedAirport,
+  focusedFlightId,
+  onSelectAirport,
+  onBackgroundClick,
+}: Props) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+
+  // 強調するフライトが選ばれたら、その路線が収まるようにカメラを移動する。
+  // 絞り込みの切り替えなどで flights が変わっただけでは動かさないよう、flights は ref で参照する
+  const flightsRef = useRef(flights)
+  useEffect(() => {
+    flightsRef.current = flights
+  }, [flights])
+  useEffect(() => {
+    const flight = flightsRef.current.find((f) => f.id === focusedFlightId)
+    const from = flight && findAirport(flight.from)
+    const to = flight && findAirport(flight.to)
+    if (!from || !to) return
+    // 距離が長い路線ほど引いて見る（国内線は寄り、長距離国際線は地球全体に近い高さ）
+    const altitude = Math.min(2.5, Math.max(0.6, distanceKm(from, to) / 4000))
+    globeRef.current?.pointOfView({ ...midpoint(from, to), altitude }, 1000)
+  }, [focusedFlightId])
 
   // ラベルのクリック処理は作成時に登録するため、最新のコールバックを参照できるようにしておく
   const onSelectRef = useRef(onSelectAirport)
@@ -72,28 +112,33 @@ export function GlobeView({ flights, selectedAirport, onSelectAirport }: Props) 
           ),
         })
     }
+    const hasFocus = flights.some((f) => f.id === focusedFlightId)
     for (const f of flights) {
       const from = findAirport(f.from)
       const to = findAirport(f.to)
       if (!from || !to) continue
+      const color = isDomestic(from, to) ? ROUTE_COLORS.domestic : ROUTE_COLORS.international
+      const focused = f.id === focusedFlightId
       arcs.push({
         startLat: from.lat,
         startLng: from.lng,
         endLat: to.lat,
         endLng: to.lng,
-        color: isDomestic(from, to) ? ROUTE_COLORS.domestic : ROUTE_COLORS.international,
+        color: hasFocus && !focused ? withAlpha(color, DIMMED_ALPHA) : color,
+        stroke: focused ? 1.2 : 0.5,
       })
       add(from)
       add(to)
     }
-    // 選択中の空港を最優先に、次に利用回数の多い空港ほどラベルを優先して表示する
+    // 選択中の空港と強調中の路線の空港を最優先に、次に利用回数の多い空港ほどラベルを優先して表示する
+    const focused = flights.find((f) => f.id === focusedFlightId)
+    const priority = (a: Airport) =>
+      Number(a.iata === selectedAirport || a.iata === focused?.from || a.iata === focused?.to)
     const airports = [...used.values()].sort(
-      (a, b) =>
-        Number(b.iata === selectedAirport) - Number(a.iata === selectedAirport) ||
-        b.count - a.count,
+      (a, b) => priority(b) - priority(a) || b.count - a.count,
     )
     return { arcs, airports }
-  }, [flights, selectedAirport])
+  }, [flights, selectedAirport, focusedFlightId])
 
   // 画面上で重なるラベルと、地球の裏側にあるラベルを隠す
   const declutter = useCallback(() => {
@@ -135,7 +180,7 @@ export function GlobeView({ flights, selectedAirport, onSelectAirport }: Props) 
           atmosphereAltitude={0.18}
           arcsData={arcs}
           arcColor="color"
-          arcStroke={0.5}
+          arcStroke="stroke"
           arcAltitudeAutoScale={0.4}
           pointsData={airports}
           pointLat="lat"
@@ -150,8 +195,8 @@ export function GlobeView({ flights, selectedAirport, onSelectAirport }: Props) 
           htmlAltitude={0.012}
           htmlElement="el"
           htmlTransitionDuration={0}
-          // 地球（陸地・海）をクリックしたら選択を解除する
-          onGlobeClick={() => onSelectAirport(null)}
+          // 地球（陸地・海）をクリックしたら空港の選択と路線の強調を解除する
+          onGlobeClick={onBackgroundClick}
           onZoom={declutter}
           onGlobeReady={() => {
             // 初期視点は東京付近
