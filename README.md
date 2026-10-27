@@ -46,6 +46,14 @@ npm run build:airports
 
 IATA コードがあり、定期便が飛んでいる空港だけを取り出します（[scripts/build-airports.mjs](scripts/build-airports.mjs)）。
 
+### 地図画像の更新
+
+地球に貼る地図画像（`public/land.webp`）と背景の星空画像（`public/night-sky.webp`）は、事前に生成したものです。ブラウザで毎回描くと最初の表示が遅くなるため、画像にしています。陸地や国境線の色を変えるときは、[scripts/build-textures.mjs](scripts/build-textures.mjs) を編集してから次を実行します。
+
+```bash
+npm run build:textures
+```
+
 ### 公開（GitHub Pages）
 
 `main` ブランチにプッシュすると、GitHub Actions（[.github/workflows/deploy.yml](.github/workflows/deploy.yml)）が自動でビルドし、GitHub Pages に公開します。

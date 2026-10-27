@@ -1,21 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
-import { MeshPhongMaterial } from 'three'
-import { feature } from 'topojson-client'
-import type { Topology } from 'topojson-specification'
-import type { FeatureCollection } from 'geojson'
-import countries50m from 'world-atlas/countries-50m.json'
 import { findAirport, isDomestic, ROUTE_COLORS } from '../airports'
 import type { Airport, Flight } from '../types'
 
 type Arc = { startLat: number; startLng: number; endLat: number; endLng: number; color: string }
 
-// Natural Earth 1:50m の国境データ（日本の島々の形も判別できる精度）
-const topology = countries50m as unknown as Topology
-const countries = (feature(topology, topology.objects.countries) as FeatureCollection).features
-
-// 海の色。陸地はポリゴンで上から描く
-const oceanMaterial = new MeshPhongMaterial({ color: '#0b1a2e', shininess: 8 })
+// 地図画像・背景画像は scripts/build-textures.mjs で事前に生成したもの
+const GLOBE_IMAGE = `${import.meta.env.BASE_URL}land.webp`
+const BACKGROUND_IMAGE = `${import.meta.env.BASE_URL}night-sky.webp`
 
 type AirportLabel = Airport & { count: number; el: HTMLElement }
 
@@ -137,16 +129,10 @@ export function GlobeView({ flights, selectedAirport, onSelectAirport }: Props) 
           ref={globeRef}
           width={size.width}
           height={size.height}
-          globeMaterial={oceanMaterial}
-          backgroundImageUrl={`${import.meta.env.BASE_URL}night-sky.png`}
+          globeImageUrl={GLOBE_IMAGE}
+          backgroundImageUrl={BACKGROUND_IMAGE}
           atmosphereColor="#6b8cff"
           atmosphereAltitude={0.18}
-          polygonsData={countries}
-          polygonCapColor={() => '#34425a'}
-          polygonSideColor={() => 'rgba(0,0,0,0)'}
-          polygonStrokeColor={() => '#7a8aa6'}
-          polygonAltitude={0.004}
-          polygonsTransitionDuration={0}
           arcsData={arcs}
           arcColor="color"
           arcStroke={0.5}
@@ -164,9 +150,8 @@ export function GlobeView({ flights, selectedAirport, onSelectAirport }: Props) 
           htmlAltitude={0.012}
           htmlElement="el"
           htmlTransitionDuration={0}
-          // 陸地（ポリゴン）や海をクリックしたら選択を解除する
+          // 地球（陸地・海）をクリックしたら選択を解除する
           onGlobeClick={() => onSelectAirport(null)}
-          onPolygonClick={() => onSelectAirport(null)}
           onZoom={declutter}
           onGlobeReady={() => {
             // 初期視点は東京付近

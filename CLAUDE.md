@@ -26,7 +26,8 @@
 - データ保存: ブラウザの localStorage（`src/storage.ts`）
 - 空港データ: OurAirports の公開データから `npm run build:airports` で `src/data/airports.json` を生成（IATAコード付きの定期便空港のみ）
 - コマンド: `npm run dev`（開発サーバー）、`npm run build`（型チェック＋ビルド）
-- デザイン: 暗い色ベースの球状地図、路線は白い線。陸地は world-atlas（Natural Earth 1:50m）の国境ポリゴンで描画
+- デザイン: 暗い色ベースの球状地図、路線は白い線（国内線はアンバー）
+- 地図: world-atlas（Natural Earth 1:50m）から `npm run build:textures` で `public/land.webp` を事前生成し、地球に貼っている。国ごとの3Dポリゴン描画は初回表示に十数秒かかったため使わない。陸地や国境線の色を変えるときは `scripts/build-textures.mjs` を編集して再生成する
 - 空港検索は3レターコードまたは英語（都市名・空港名）
 - フライトの必須項目は出発・到着空港のみ。日付・便名・航空会社は任意
 - 総距離・地球○周分・国内線/国際線の件数は、絞り込み（全て/国内線/国際線、空港選択）に関係なく全フライトで集計する
