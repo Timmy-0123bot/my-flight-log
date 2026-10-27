@@ -354,3 +354,88 @@ button.link.danger:hover {
 .airport-label.hidden {
   visibility: hidden;
 }
+
+.airport-label span {
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.airport-label span:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.airport-label.selected span {
+  color: #0a0d14;
+  background: #ffffff;
+  text-shadow: none;
+}
+
+/* 全て/国内線/国際線 の切り替え */
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.segmented button {
+  padding: 6px 0;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+}
+
+.segmented button:hover {
+  color: var(--text);
+}
+
+.segmented button.active {
+  color: #0a0d14;
+  background: var(--accent);
+  font-weight: 600;
+}
+
+/* 選択中の空港 */
+.selection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+}
+
+.selection small {
+  margin-left: 8px;
+  color: var(--muted);
+}
+
+/* バックアップ（パネルの最下部に置く） */
+.backup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.backup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+button.small {
+  padding: 6px;
+  font-size: 13px;
+}
+
+button.secondary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

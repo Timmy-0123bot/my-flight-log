@@ -24,23 +24,34 @@ const LABEL_WIDTH = 30
 const LABEL_HEIGHT = 16
 
 // 画面上で常に同じ大きさになるHTMLラベル。外側の要素が空港の位置に置かれ、文字は点の右上に出す
-function createLabelElement(text: string): HTMLElement {
+function createLabelElement(text: string, selected: boolean, onClick: () => void): HTMLElement {
   const el = document.createElement('div')
-  el.className = 'airport-label'
+  el.className = selected ? 'airport-label selected' : 'airport-label'
   const span = document.createElement('span')
   span.textContent = text
+  // 地球儀の回転操作がポインターを奪うとクリックが届かないため、押下を親へ伝えない
+  span.addEventListener('pointerdown', (e) => e.stopPropagation())
+  span.addEventListener('click', onClick)
   el.appendChild(span)
   return el
 }
 
 type Props = {
   flights: Flight[]
+  selectedAirport: string | null
+  onSelectAirport: (iata: string | null) => void
 }
 
-export function GlobeView({ flights }: Props) {
+export function GlobeView({ flights, selectedAirport, onSelectAirport }: Props) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+
+  // ラベルのクリック処理は作成時に登録するため、最新のコールバックを参照できるようにしておく
+  const onSelectRef = useRef(onSelectAirport)
+  useEffect(() => {
+    onSelectRef.current = onSelectAirport
+  }, [onSelectAirport])
 
   // 表示領域はCSSで決め、その大きさに地球儀を合わせる
   useEffect(() => {
@@ -54,14 +65,20 @@ export function GlobeView({ flights }: Props) {
     return () => observer.disconnect()
   }, [])
 
-
   const { arcs, airports } = useMemo(() => {
     const arcs: Arc[] = []
     const used = new Map<string, AirportLabel>()
     const add = (a: Airport) => {
       const entry = used.get(a.iata)
       if (entry) entry.count++
-      else used.set(a.iata, { ...a, count: 1, el: createLabelElement(a.iata) })
+      else
+        used.set(a.iata, {
+          ...a,
+          count: 1,
+          el: createLabelElement(a.iata, a.iata === selectedAirport, () =>
+            onSelectRef.current(a.iata),
+          ),
+        })
     }
     for (const f of flights) {
       const from = findAirport(f.from)
@@ -77,10 +94,14 @@ export function GlobeView({ flights }: Props) {
       add(from)
       add(to)
     }
-    // 利用回数の多い空港ほどラベルを優先して表示する
-    const airports = [...used.values()].sort((a, b) => b.count - a.count)
+    // 選択中の空港を最優先に、次に利用回数の多い空港ほどラベルを優先して表示する
+    const airports = [...used.values()].sort(
+      (a, b) =>
+        Number(b.iata === selectedAirport) - Number(a.iata === selectedAirport) ||
+        b.count - a.count,
+    )
     return { arcs, airports }
-  }, [flights])
+  }, [flights, selectedAirport])
 
   // 画面上で重なるラベルと、地球の裏側にあるラベルを隠す
   const declutter = useCallback(() => {
@@ -136,12 +157,16 @@ export function GlobeView({ flights }: Props) {
           pointColor={() => '#ffffff'}
           pointAltitude={0.008}
           pointRadius={0.25}
+          onPointClick={(p) => onSelectAirport((p as AirportLabel).iata)}
           htmlElementsData={airports}
           htmlLat="lat"
           htmlLng="lng"
           htmlAltitude={0.012}
           htmlElement="el"
           htmlTransitionDuration={0}
+          // 陸地（ポリゴン）や海をクリックしたら選択を解除する
+          onGlobeClick={() => onSelectAirport(null)}
+          onPolygonClick={() => onSelectAirport(null)}
           onZoom={declutter}
           onGlobeReady={() => {
             // 初期視点は東京付近

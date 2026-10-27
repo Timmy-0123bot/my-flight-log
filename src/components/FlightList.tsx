@@ -3,12 +3,13 @@ import type { Flight } from '../types'
 
 type Props = {
   flights: Flight[]
+  emptyMessage: string
   onDelete: (id: string) => void
 }
 
-export function FlightList({ flights, onDelete }: Props) {
+export function FlightList({ flights, emptyMessage, onDelete }: Props) {
   if (flights.length === 0) {
-    return <p className="empty">まだフライトがありません</p>
+    return <p className="empty">{emptyMessage}</p>
   }
 
   // 日付ありは新しい順、日付なしは末尾
