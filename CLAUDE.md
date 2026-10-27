@@ -31,3 +31,10 @@
 - フライトの必須項目は出発・到着空港のみ。日付・便名・航空会社は任意
 - 総距離・地球○周分・国内線/国際線の件数は、絞り込み（全て/国内線/国際線、空港選択）に関係なく全フライトで集計する
 - バックアップは JSON（`{ app: "my-flight-log", version: 1, exportedAt, flights }`）。読み込みは現在のデータを置き換える
+
+## 公開（GitHub Pages）
+
+- URL: https://timmy-0123bot.github.io/my-flight-log/
+- `main` へのプッシュで `.github/workflows/deploy.yml` が自動でビルド・公開する
+- 公開先がサブパスのため、`vite.config.ts` でビルド/プレビュー時のみ `base: '/my-flight-log/'` にしている。`public/` のファイルを参照するときは `import.meta.env.BASE_URL` を前に付ける（`/xxx.png` のような絶対パスは公開先で壊れる）
+- 公開版の確認: `npm run build` → `npm run preview` → http://localhost:4173/my-flight-log/

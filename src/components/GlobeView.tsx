@@ -138,7 +138,7 @@ export function GlobeView({ flights, selectedAirport, onSelectAirport }: Props) 
           width={size.width}
           height={size.height}
           globeMaterial={oceanMaterial}
-          backgroundImageUrl="/night-sky.png"
+          backgroundImageUrl={`${import.meta.env.BASE_URL}night-sky.png`}
           atmosphereColor="#6b8cff"
           atmosphereAltitude={0.18}
           polygonsData={countries}
