@@ -381,6 +381,27 @@ button.link.danger:hover {
   white-space: nowrap;
 }
 
+/* ラベルの位置（GlobeView の LABEL_POSITIONS と対応）。既定は点の右上 */
+.airport-label.pos-left span {
+  left: auto;
+  right: 5px;
+}
+
+.airport-label.pos-top span,
+.airport-label.pos-bottom span {
+  left: 0;
+  transform: translateX(-50%);
+}
+
+.airport-label.pos-top span {
+  bottom: 6px;
+}
+
+.airport-label.pos-bottom span {
+  bottom: auto;
+  top: 6px;
+}
+
 .airport-label.hidden {
   visibility: hidden;
 }
@@ -468,4 +489,43 @@ button.small {
 button.secondary:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* よく使う空港のボタン */
+.top-airports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 10px;
+  color: var(--text);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.chip small {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.chip:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.chip.active {
+  color: #0a0d14;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.chip.active small {
+  color: #0a0d14;
 }

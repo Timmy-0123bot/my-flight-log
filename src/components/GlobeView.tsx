@@ -20,6 +20,16 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
+const INITIAL_ALTITUDE = 2.2
+
+// 路線の線や空港の点は地球上の太さで描かれ、拡大するほど画面上で太くなる。
+// 初期視点を基準に、カメラの高さに応じて細くする係数を返す。
+// 回転・拡大中は毎フレーム呼ばれるため、√2 刻みに丸めて再描画の回数を抑える
+function zoomScaleFor(altitude: number): number {
+  const steps = Math.round(Math.log2(altitude / INITIAL_ALTITUDE) * 2) / 2
+  return Math.min(1, Math.max(1 / 16, 2 ** steps))
+}
+
 // 地図画像・背景画像は scripts/build-textures.mjs で事前に生成したもの
 const GLOBE_IMAGE = `${import.meta.env.BASE_URL}land.webp`
 const BACKGROUND_IMAGE = `${import.meta.env.BASE_URL}night-sky.webp`
@@ -28,9 +38,30 @@ type AirportLabel = Airport & { count: number; el: HTMLElement }
 
 // ラベル（3レターコード）1つぶんの画面上の大きさ（px）。重なり判定に使う
 const LABEL_WIDTH = 30
-const LABEL_HEIGHT = 16
+const LABEL_HEIGHT = 14
+// 重なり判定で、空港の点が占める大きさ（px）
+const POINT_SIZE = 6
 
-// 画面上で常に同じ大きさになるHTMLラベル。外側の要素が空港の位置に置かれ、文字は点の右上に出す
+type Rect = { left: number; top: number; right: number; bottom: number }
+
+// ラベルを置く候補の位置（点の右上を優先し、重なるなら順に試す）。
+// クラス名は index.css の .airport-label.pos-* と対応する
+const LABEL_POSITIONS: { className: string; rect: (x: number, y: number) => Rect }[] = [
+  { className: 'pos-right', rect: (x, y) => box(x + 5, y - 2 - LABEL_HEIGHT) },
+  { className: 'pos-left', rect: (x, y) => box(x - 5 - LABEL_WIDTH, y - 2 - LABEL_HEIGHT) },
+  { className: 'pos-top', rect: (x, y) => box(x - LABEL_WIDTH / 2, y - 6 - LABEL_HEIGHT) },
+  { className: 'pos-bottom', rect: (x, y) => box(x - LABEL_WIDTH / 2, y + 6) },
+]
+
+function box(left: number, top: number): Rect {
+  return { left, top, right: left + LABEL_WIDTH, bottom: top + LABEL_HEIGHT }
+}
+
+function intersects(a: Rect, b: Rect): boolean {
+  return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+}
+
+// 画面上で常に同じ大きさになるHTMLラベル。外側の要素が空港の位置に置かれ、文字は点の周りに出す
 function createLabelElement(text: string, selected: boolean, onClick: () => void): HTMLElement {
   const el = document.createElement('div')
   el.className = selected ? 'airport-label selected' : 'airport-label'
@@ -62,6 +93,7 @@ export function GlobeView({
   const globeRef = useRef<GlobeMethods | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+  const [zoomScale, setZoomScale] = useState(1)
 
   // 強調するフライトが選ばれたら、その路線が収まるようにカメラを移動する。
   // 絞り込みの切り替えなどで flights が変わっただけでは動かさないよう、flights は ref で参照する
@@ -140,24 +172,39 @@ export function GlobeView({
     return { arcs, airports }
   }, [flights, selectedAirport, focusedFlightId])
 
-  // 画面上で重なるラベルと、地球の裏側にあるラベルを隠す
+  // 各ラベルを、ほかのラベルや空港の点と重ならない位置に置く。どこにも置けないラベルと、
+  // 地球の裏側にあるラベルは隠す（優先度の高い空港から順に場所を決める）
   const declutter = useCallback(() => {
     const globe = globeRef.current
     if (!globe) return
     const cam = globe.camera().position
-    const placed: { x: number; y: number }[] = []
-    for (const a of airports) {
+    const screen = airports.map((a) => {
       const p = globe.getCoords(a.lat, a.lng, 0)
       // カメラから見て地球の手前側にあるか
       const facing = p.x * cam.x + p.y * cam.y + p.z * cam.z > 100 * 100
-      const { x, y } = globe.getScreenCoords(a.lat, a.lng, 0)
-      const overlaps = placed.some(
-        (q) => Math.abs(q.y - y) < LABEL_HEIGHT && Math.abs(q.x - x) < LABEL_WIDTH,
-      )
-      const visible = facing && !overlaps
-      a.el.classList.toggle('hidden', !visible)
-      if (visible) placed.push({ x, y })
-    }
+      return { ...globe.getScreenCoords(a.lat, a.lng, 0), facing }
+    })
+    // 空港の点の上にはラベルを重ねない
+    const occupied: Rect[] = screen
+      .filter((s) => s.facing)
+      .map(({ x, y }) => ({
+        left: x - POINT_SIZE / 2,
+        top: y - POINT_SIZE / 2,
+        right: x + POINT_SIZE / 2,
+        bottom: y + POINT_SIZE / 2,
+      }))
+    airports.forEach((a, i) => {
+      const { x, y, facing } = screen[i]
+      const position = facing
+        ? LABEL_POSITIONS.find((pos) => {
+            const rect = pos.rect(x, y)
+            return !occupied.some((o) => intersects(o, rect))
+          })
+        : undefined
+      a.el.classList.toggle('hidden', !position)
+      for (const pos of LABEL_POSITIONS) a.el.classList.toggle(pos.className, pos === position)
+      if (position) occupied.push(position.rect(x, y))
+    })
   }, [airports])
 
   // データや画面サイズが変わったら、描画が終わった次のフレームで整理する
@@ -180,14 +227,14 @@ export function GlobeView({
           atmosphereAltitude={0.18}
           arcsData={arcs}
           arcColor="color"
-          arcStroke="stroke"
+          arcStroke={(d) => (d as Arc).stroke * zoomScale}
           arcAltitudeAutoScale={0.4}
           pointsData={airports}
           pointLat="lat"
           pointLng="lng"
           pointColor={() => '#ffffff'}
           pointAltitude={0.008}
-          pointRadius={0.25}
+          pointRadius={0.25 * zoomScale}
           onPointClick={(p) => onSelectAirport((p as AirportLabel).iata)}
           htmlElementsData={airports}
           htmlLat="lat"
@@ -197,10 +244,13 @@ export function GlobeView({
           htmlTransitionDuration={0}
           // 地球（陸地・海）をクリックしたら空港の選択と路線の強調を解除する
           onGlobeClick={onBackgroundClick}
-          onZoom={declutter}
+          onZoom={({ altitude }) => {
+            declutter()
+            setZoomScale(zoomScaleFor(altitude))
+          }}
           onGlobeReady={() => {
             // 初期視点は東京付近
-            globeRef.current?.pointOfView({ lat: 30, lng: 140, altitude: 2.2 }, 0)
+            globeRef.current?.pointOfView({ lat: 30, lng: 140, altitude: INITIAL_ALTITUDE }, 0)
             // カメラ位置が反映される次のフレームで整理する
             requestAnimationFrame(declutter)
           }}

@@ -21,6 +21,9 @@ const FILTERS: { value: RouteFilter; label: string }[] = [
   { value: 'international', label: '国際線' },
 ]
 
+// パネルに並べる「よく使う空港」の数
+const TOP_AIRPORT_COUNT = 6
+
 export default function App() {
   const [flights, setFlights] = useState<Flight[]>(loadFlights)
   const [panelOpen, setPanelOpen] = useState(true)
@@ -45,6 +48,18 @@ export default function App() {
       else international++
     }
     return { totalKm, domestic, international, laps: totalKm / EARTH_CIRCUMFERENCE_KM }
+  }, [flights])
+
+  // 利用回数の多い空港（パネルから地図を探さずに選べるようにする）
+  const topAirports = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const f of flights) {
+      counts.set(f.from, (counts.get(f.from) ?? 0) + 1)
+      counts.set(f.to, (counts.get(f.to) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, TOP_AIRPORT_COUNT)
   }, [flights])
 
   // 地図と一覧に出すフライト（国内線/国際線の切り替えと、選択中の空港で絞り込む）
@@ -120,6 +135,24 @@ export default function App() {
               </button>
             ))}
           </div>
+
+          {topAirports.length > 0 && (
+            <div className="top-airports" role="group" aria-label="よく使う空港">
+              {topAirports.map(([iata, count]) => (
+                <button
+                  key={iata}
+                  type="button"
+                  className={iata === selectedAirport ? 'chip active' : 'chip'}
+                  aria-pressed={iata === selectedAirport}
+                  title={findAirport(iata)?.name}
+                  onClick={() => setSelectedAirport((prev) => (iata !== prev ? iata : null))}
+                >
+                  {iata}
+                  <small>{count}</small>
+                </button>
+              ))}
+            </div>
+          )}
 
           {selectedAirport && (
             <div className="selection">
