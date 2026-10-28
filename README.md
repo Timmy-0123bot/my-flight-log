@@ -22,6 +22,7 @@
   - パネルの「よく使う空港」のボタン（利用回数の多い順に6つ）からも、同じように空港を選べます。
   - 同じ空港をもう一度押すか、地図の何もないところを押すと元に戻ります。
 - **一覧から地図へ移動**: 一覧のフライトを押すと、地図がその路線まで回り、その線を太く表示してほかの線を薄くします。もう一度押すか、地図の何もないところを押すと元に戻ります。
+- **PC・スマホで同期**: Google でログインすると、記録がクラウドに保存され、同じアカウントでログインしたどの端末でも同じ記録を見たり追加したりできます。ログインしなくても、そのブラウザの中だけで使えます。
 - **共有ページ**: ログイン中に「共有ページを作る」を押すと、見るだけの共有用 URL ができます。URL を知っている人は路線（空港と距離）だけを見られ、日付・便名・航空会社は含みません。編集はできません。「URL を作り直す」で前の URL を無効にでき、「公開をやめる」で見られなくなります。
 - **バックアップ**: 全フライトを JSON ファイルに書き出し、読み込んで復元できます。
 
@@ -96,6 +97,24 @@ npm run build:textures
 `main` ブランチにプッシュすると、GitHub Actions（[.github/workflows/deploy.yml](.github/workflows/deploy.yml)）が自動でビルドし、GitHub Pages に公開します。
 
 公開版は `/my-flight-log/` の下で配信されるため、[vite.config.ts](vite.config.ts) では、ビルドとプレビューのときだけ `base` を `/my-flight-log/` にしています。`public/` 内のファイルを参照するときは、`/xxx.png` のような絶対パスにせず、`import.meta.env.BASE_URL` を前に付けてください。
+
+### Firebase の設定
+
+ログイン・同期・共有ページには Firebase を使っています（無料の Spark プランのまま使っており、有料プランが必要な機能は使いません）。Firebase コンソールでの設定は次のとおりです。
+
+| 項目 | 設定 |
+|---|---|
+| Authentication | ログイン方法で「Google」を有効化。承認済みドメインに `timmy-0123bot.github.io` を追加（`localhost` は最初から入っています） |
+| Firestore Database | ロケーション `asia-northeast1`（東京）、本番環境モード |
+| Firestore のルール | [firestore.rules](firestore.rules) の内容 |
+
+- **ルールを変えるとき**: [firestore.rules](firestore.rules) を編集したら、Firebase コンソールの「Firestore Database」→「ルール」に内容を貼り付けて「公開」してください。ファイルを変えてプッシュしただけでは反映されません。
+- **データの置き場所**:
+  - `users/{uid}`: 本人の全フライトと、共有ページの ID
+  - `shares/{shareId}`: 共有ページ用の路線（出発・到着の空港）だけ
+- **API キーについて**: [src/firebase.ts](src/firebase.ts) にある Firebase のウェブ用設定は、ブラウザに配信する前提の公開情報です。GitHub の Secret scanning が「Google API Key」として警告しますが、秘密の鍵ではありません。データはルールで保護しています。
+  - そのうえで念のため、Google Cloud コンソールの「認証情報」でこのキーにウェブサイト制限をかけ、使えるサイトを公開版・`my-flight-log-14f7e.firebaseapp.com`（ログイン画面）・`localhost:5173`・`localhost:4173` に絞っています。
+  - 公開先を増やすときは、このウェブサイト制限と、Authentication の承認済みドメインの両方に追加してください。
 
 ## 使用技術
 
