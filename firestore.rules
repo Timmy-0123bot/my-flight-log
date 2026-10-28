@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Firestore のセキュリティルール。
+// Firebase コンソールの「Firestore Database」→「ルール」にこの内容を貼り付けて「公開」する
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 各ユーザーは、自分のドキュメント（users/{自分のuid}）だけを読み書きできる
+    match /users/{uid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['flights', 'updatedAt'])
+        && request.resource.data.flights is list
+        && request.resource.data.flights.size() <= 5000;
+    }
+  }
+}

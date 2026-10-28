@@ -23,7 +23,9 @@
 ## 開発メモ
 
 - 技術スタック: React + TypeScript + Vite、地球儀は react-globe.gl（three.js）
-- データ保存: ブラウザの localStorage（`src/storage.ts`）
+- データ保存: 未ログインはブラウザの localStorage（`src/storage.ts`）、Google ログイン中は Firestore の `users/{uid}` ドキュメント1つに全フライトをまとめて保存（`src/cloud.ts`）。切り替えと初回ログイン時の引っ越しは `src/useFlights.ts`。ログイン中も localStorage に同じ内容を保存している
+- Firebase: 無料の Spark プランのまま使う（Blaze が必要な機能は使わない）。`src/firebase.ts` のウェブ設定は公開情報なのでコミットしてよい。セキュリティルールは `firestore.rules` で管理し、変更したら Firebase コンソールの「Firestore Database → ルール」に貼り付けて公開する
+- 初回ログイン時の引っ越しは、サーバーで確認できた内容（キャッシュではない）を見てから行う。新しい端末ではキャッシュが空で「記録なし」に見え、クラウドを上書きしかねないため
 - 空港データ: OurAirports の公開データから `npm run build:airports` で `src/data/airports.json` を生成（IATAコード付きの定期便空港のみ）
 - コマンド: `npm run dev`（開発サーバー）、`npm run build`（型チェック＋ビルド）
 - デザイン: 暗い色ベースの球状地図、路線は白い線（国内線はアンバー）

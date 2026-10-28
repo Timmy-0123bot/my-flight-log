@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   distanceKm,
   EARTH_CIRCUMFERENCE_KM,
@@ -6,12 +6,12 @@ import {
   isDomestic,
   ROUTE_COLORS,
 } from './airports'
+import { AccountControls } from './components/AccountControls'
 import { BackupControls } from './components/BackupControls'
 import { FlightForm } from './components/FlightForm'
 import { FlightList } from './components/FlightList'
 import { GlobeView } from './components/GlobeView'
-import { loadFlights, saveFlights } from './storage'
-import type { Flight } from './types'
+import { useFlights } from './useFlights'
 
 type RouteFilter = 'all' | 'domestic' | 'international'
 
@@ -25,14 +25,13 @@ const FILTERS: { value: RouteFilter; label: string }[] = [
 const TOP_AIRPORT_COUNT = 6
 
 export default function App() {
-  const [flights, setFlights] = useState<Flight[]>(loadFlights)
+  const { flights, updateFlights: setFlights, user, status, signIn, signOut } = useFlights()
   const [panelOpen, setPanelOpen] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [routeFilter, setRouteFilter] = useState<RouteFilter>('all')
   const [selectedAirport, setSelectedAirport] = useState<string | null>(null)
   const [focusedFlightId, setFocusedFlightId] = useState<string | null>(null)
 
-  useEffect(() => saveFlights(flights), [flights])
 
   // 集計は絞り込みに関係なく全フライトで出す
   const stats = useMemo(() => {
@@ -189,14 +188,17 @@ export default function App() {
             onDelete={(id) => setFlights((prev) => prev.filter((f) => f.id !== id))}
           />
 
-          <BackupControls
-            flights={flights}
-            onImport={(imported) => {
-              setFlights(imported)
-              setFocusedFlightId(null)
-              setSelectedAirport(null)
-            }}
-          />
+          <div className="panel-footer">
+            <AccountControls user={user} status={status} onSignIn={signIn} onSignOut={signOut} />
+            <BackupControls
+              flights={flights}
+              onImport={(imported) => {
+                setFlights(() => imported)
+                setFocusedFlightId(null)
+                setSelectedAirport(null)
+              }}
+            />
+          </div>
         </aside>
       ) : (
         <button type="button" className="panel-toggle" onClick={() => setPanelOpen(true)}>

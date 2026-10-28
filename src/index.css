@@ -466,13 +466,46 @@ button.link.danger:hover {
   color: var(--muted);
 }
 
-/* バックアップ（パネルの最下部に置く） */
-.backup {
+/* 同期・バックアップの各セクション */
+.backup,
+.account {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* 同期とバックアップ（パネルの最下部に置く） */
+.panel-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   margin-top: auto;
   padding-top: 12px;
+}
+
+.account-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.account-status.error {
+  color: var(--danger);
+}
+
+.account-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.account-user span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .backup-actions {

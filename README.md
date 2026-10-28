@@ -26,11 +26,12 @@
 
 ## データの保存について
 
-フライトの記録はサーバーには送らず、**使っているブラウザの中（localStorage）にだけ**保存しています。
-
-- 別のブラウザや別の端末では、記録は共有されません。
-- ブラウザのサイトデータを消すと、記録も消えます。ときどき「書き出し」でバックアップしてください。
-- 端末を移るときは、元の端末で「書き出し」したファイルを、新しい端末で「読み込み」します。なお、読み込むと今の記録はファイルの内容に置き換わります。
+- **ログインしていないとき**: 記録は、使っているブラウザの中（localStorage）にだけ保存します。別のブラウザや端末とは共有されず、ブラウザのサイトデータを消すと記録も消えます。
+- **Google でログインしたとき**: 記録はクラウド（Firebase の Firestore）に保存され、同じアカウントでログインした PC・スマホで共有されます。ほかの端末での変更は、開いている画面にもすぐ反映されます。
+  - 初めてログインしたとき、そのブラウザにある記録は自動でクラウドに移ります。すでにクラウドに記録がある場合は、両方をまとめます（同じ記録が二重になることはありません）。
+  - オフラインのときの変更は端末に保存され、つながったときにクラウドへ送られます。
+  - 記録を読み書きできるのは本人だけです（[firestore.rules](firestore.rules)）。
+- **バックアップ**: 「書き出し」で全フライトを JSON ファイルに保存できます。「読み込み」すると、今の記録はファイルの内容に置き換わります（ログイン中はクラウドの記録も置き換わります）。
 
 ## 開発
 
@@ -55,8 +56,11 @@ src/
     FlightList.tsx           フライト一覧（編集・削除、押すと地図で強調）
     AirportInput.tsx         空港の検索入力
     BackupControls.tsx       バックアップの書き出し・読み込み
+    AccountControls.tsx      Google ログインと同期状態の表示
   airports.ts                空港の検索、距離・中間地点の計算、国内線/国際線の判定
   storage.ts                 localStorage への保存と、バックアップファイルの形式・検証
+  useFlights.ts              保存先の切り替え（未ログインはブラウザ、ログイン中はクラウド）と初回の引っ越し
+  cloud.ts, firebase.ts      Firestore への読み書きと、Firebase の設定
   types.ts                   Flight・Airport の型
   data/airports.json         空港データ（scripts/build-airports.mjs で生成）
 public/
@@ -93,6 +97,7 @@ npm run build:textures
 - アプリ本体
   - [React](https://react.dev/) + TypeScript + [Vite](https://vite.dev/)
   - [react-globe.gl](https://github.com/vasturiano/react-globe.gl)（[three.js](https://threejs.org/) を使った地球儀の描画）
+  - [Firebase](https://firebase.google.com/)（Authentication で Google ログイン、Firestore で記録の保存。無料の Spark プランで使用）
 - 地図画像の生成（`npm run build:textures` のときだけ使用）
   - [d3-geo](https://github.com/d3/d3-geo)、[topojson-client](https://github.com/topojson/topojson-client)、[@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)
 
