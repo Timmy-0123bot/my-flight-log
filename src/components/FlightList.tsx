@@ -8,8 +8,9 @@ type Props = {
   emptyMessage: string
   focusedId: string | null
   onFocus: (id: string) => void
-  onUpdate: (flight: Flight) => void
-  onDelete: (id: string) => void
+  // 省略すると「編集」「削除」を出さない（閲覧のみ）
+  onUpdate?: (flight: Flight) => void
+  onDelete?: (id: string) => void
 }
 
 // 折りたたみ時に表示する件数
@@ -41,7 +42,7 @@ export function FlightList({ flights, emptyMessage, focusedId, onFocus, onUpdate
     <>
       <ul className="flight-list">
         {shown.map((f) => {
-          if (f.id === editingId) {
+          if (f.id === editingId && onUpdate) {
             return (
               <li key={f.id} className="editing">
                 <FlightForm
@@ -80,20 +81,26 @@ export function FlightList({ flights, emptyMessage, focusedId, onFocus, onUpdate
                     .join(' · ')}
                 </span>
               </button>
-              <div className="item-actions">
-                <button type="button" className="link" onClick={() => setEditingId(f.id)}>
-                  編集
-                </button>
-                <button
-                  type="button"
-                  className="link danger"
-                  onClick={() => {
-                    if (confirm(`${f.from} → ${f.to} を削除しますか？`)) onDelete(f.id)
-                  }}
-                >
-                  削除
-                </button>
-              </div>
+              {(onUpdate || onDelete) && (
+                <div className="item-actions">
+                  {onUpdate && (
+                    <button type="button" className="link" onClick={() => setEditingId(f.id)}>
+                      編集
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="link danger"
+                      onClick={() => {
+                        if (confirm(`${f.from} → ${f.to} を削除しますか？`)) onDelete(f.id)
+                      }}
+                    >
+                      削除
+                    </button>
+                  )}
+                </div>
+              )}
             </li>
           )
         })}

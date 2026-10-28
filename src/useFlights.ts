@@ -1,6 +1,13 @@
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { saveCloudFlights, subscribeCloudFlights } from './cloud'
+import {
+  createShareId,
+  deleteShare,
+  saveCloudFlights,
+  saveShare,
+  saveUserShareId,
+  subscribeCloudFlights,
+} from './cloud'
 import { auth, googleProvider } from './firebase'
 import { loadFlights, saveFlights } from './storage'
 import type { Flight } from './types'
@@ -58,6 +65,9 @@ export function useFlights() {
   const flightsRef = useRef(flights)
   // ログイン中、サーバー上の内容を一度確認できたか（それまでは編集をクラウドに送らない）
   const readyRef = useRef(false)
+  // 共有ページを公開中ならその ID（フライトを変えたら共有ページにも反映する）
+  const [shareId, setShareId] = useState<string | null>(null)
+  const shareIdRef = useRef<string | null>(null)
 
   const apply = useCallback((next: Flight[]) => {
     flightsRef.current = next
@@ -69,7 +79,11 @@ export function useFlights() {
     () =>
       onAuthStateChanged(auth, (u) => {
         setUser(u)
-        if (!u) setStatus({ state: 'local' })
+        if (!u) {
+          setStatus({ state: 'local' })
+          shareIdRef.current = null
+          setShareId(null)
+        }
       }),
     [],
   )
@@ -83,7 +97,9 @@ export function useFlights() {
     let checkedServer = false
     return subscribeCloudFlights(
       user.uid,
-      ({ flights: cloud, fromCache }) => {
+      ({ flights: cloud, shareId: cloudShareId, fromCache }) => {
+        shareIdRef.current = cloudShareId
+        setShareId(cloudShareId)
         if (!checkedServer) {
           // 新しい端末ではキャッシュが空のため「まだ記録なし」に見えることがある。
           // それを信じて引っ越すとクラウドの記録を上書きしかねないので、
@@ -105,6 +121,7 @@ export function useFlights() {
             // 引っ越し済みの印は、書き込みに成功してから付ける
             saveCloudFlights(user.uid, merged)
               .then(() => markMigrated(user.uid))
+              .then(() => (cloudShareId ? saveShare(cloudShareId, user.uid, merged) : undefined))
               .catch((e) => setStatus({ state: 'error', message: errorMessage(e) }))
             return
           }
@@ -127,13 +144,39 @@ export function useFlights() {
       const next = updater(flightsRef.current)
       apply(next)
       if (user) {
-        saveCloudFlights(user.uid, next).catch((e) =>
-          setStatus({ state: 'error', message: errorMessage(e) }),
-        )
+        const fail = (e: unknown) => setStatus({ state: 'error', message: errorMessage(e) })
+        saveCloudFlights(user.uid, next).catch(fail)
+        if (shareIdRef.current) saveShare(shareIdRef.current, user.uid, next).catch(fail)
       }
     },
     [user, apply],
   )
+
+  // 共有ページを公開する。すでに公開中なら新しい URL に作り直す（前の URL は見られなくなる）
+  const publishShare = useCallback(async () => {
+    if (!user || !readyRef.current) return
+    const previous = shareIdRef.current
+    const next = createShareId()
+    try {
+      await saveShare(next, user.uid, flightsRef.current)
+      await saveUserShareId(user.uid, next)
+      if (previous) await deleteShare(previous)
+    } catch (e) {
+      setStatus({ state: 'error', message: errorMessage(e) })
+    }
+  }, [user])
+
+  // 共有ページの公開をやめる（URL を開いても見られなくなる）
+  const unpublishShare = useCallback(async () => {
+    const current = shareIdRef.current
+    if (!user || !current) return
+    try {
+      await saveUserShareId(user.uid, null)
+      await deleteShare(current)
+    } catch (e) {
+      setStatus({ state: 'error', message: errorMessage(e) })
+    }
+  }, [user])
 
   const signIn = useCallback(async () => {
     try {
@@ -152,5 +195,15 @@ export function useFlights() {
 
   const signOutUser = useCallback(() => signOut(auth), [])
 
-  return { flights, updateFlights, user, status, signIn, signOut: signOutUser }
+  return {
+    flights,
+    updateFlights,
+    user,
+    status,
+    signIn,
+    signOut: signOutUser,
+    shareId,
+    publishShare,
+    unpublishShare,
+  }
 }

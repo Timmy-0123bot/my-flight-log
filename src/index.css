@@ -468,6 +468,7 @@ button.link.danger:hover {
 
 /* 同期・バックアップの各セクション */
 .backup,
+.share,
 .account {
   display: flex;
   flex-direction: column;
@@ -592,4 +593,44 @@ select:disabled {
 select option {
   color: var(--text);
   background: #151a26;
+}
+
+/* 共有ページの URL 表示 */
+.share-url {
+  display: flex;
+  gap: 6px;
+}
+
+.share-url input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.share-url button {
+  flex-shrink: 0;
+}
+
+/* 共有ページを見ている人向けの表示 */
+.shared-notice {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.shared-notice.error {
+  color: var(--danger);
+}
+
+.own-log-link {
+  display: block;
+  text-align: center;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.own-log-link:hover {
+  border-color: rgba(255, 255, 255, 0.4);
 }

@@ -9,9 +9,30 @@ service cloud.firestore {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
       allow create, update: if request.auth != null
         && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['flights', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['flights', 'updatedAt', 'shareId'])
+        && (!('flights' in request.resource.data) || request.resource.data.flights is list)
+        && (!('flights' in request.resource.data) || request.resource.data.flights.size() <= 5000)
+        && (!('shareId' in request.resource.data)
+            || request.resource.data.shareId == null
+            || request.resource.data.shareId is string);
+    }
+
+    // 共有ページ（路線だけ）。URL を知っている人は誰でも1件を読めるが、
+    // 一覧の取得（ほかの人の共有ページを探すこと）はできない。書き込めるのは持ち主だけ
+    match /shares/{shareId} {
+      allow get: if true;
+      allow create: if request.auth != null
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.keys().hasOnly(['owner', 'flights', 'updatedAt'])
         && request.resource.data.flights is list
         && request.resource.data.flights.size() <= 5000;
+      allow update: if request.auth != null
+        && resource.data.owner == request.auth.uid
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.keys().hasOnly(['owner', 'flights', 'updatedAt'])
+        && request.resource.data.flights is list
+        && request.resource.data.flights.size() <= 5000;
+      allow delete: if request.auth != null && resource.data.owner == request.auth.uid;
     }
   }
 }
